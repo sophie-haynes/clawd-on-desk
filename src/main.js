@@ -160,6 +160,7 @@ STATE_SVGS["mini-peek"]  = ["clawd-mini-peek.svg"];
 STATE_SVGS["mini-crabwalk"] = ["clawd-mini-crabwalk.svg"];
 STATE_SVGS["mini-enter-sleep"] = ["clawd-mini-enter-sleep.svg"];
 STATE_SVGS["mini-sleep"] = ["clawd-mini-sleep.svg"];
+STATE_SVGS["mini-working"] = ["clawd-mini-typing.svg"];
 
 const MIN_DISPLAY_MS = {
 };
@@ -351,6 +352,7 @@ function applyState(state, svgOverride) {
   if (miniMode && !state.startsWith("mini-")) {
     if (state === "notification") return applyState("mini-alert");
     if (state === "attention") return applyState("mini-happy");
+    if (state === "working" || state === "thinking" || state === "juggling") return applyState("mini-working");
     // Other states are silent in mini mode — but if we're stuck in a
     // oneshot mini state whose auto-return timer was cancelled (e.g. by
     // setState's pending logic), recover to mini-idle/mini-peek now.
