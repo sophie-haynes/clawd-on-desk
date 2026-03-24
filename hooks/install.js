@@ -32,14 +32,14 @@ const HTTP_MARKER = "23333/permission";
 // Claude Code fires PermissionRequest for tools needing approval (primarily Bash).
 // Edit/Write permissions are handled by Claude Code's own permission mode — not our hook.
 const HTTP_HOOKS = {
-  PermissionRequest: {
-    matcher: "",
-    hook: {
-      type: "http",
-      url: "http://127.0.0.1:23333/permission",
-      timeout: 600,
-    },
-  },
+  // PermissionRequest: {
+  //   matcher: "",
+  //   hook: {
+  //     type: "http",
+  //     url: "http://127.0.0.1:23333/permission",
+  //     timeout: 600,
+  //   },
+  // },
 };
 
 /**
