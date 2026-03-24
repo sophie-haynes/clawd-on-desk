@@ -101,24 +101,27 @@ process.stdin.on("data", (c) => chunks.push(c));
 process.stdin.on("end", () => {
   let sessionId = "default";
   let cwd = "";
+  let toolName = "";
   try {
     const payload = JSON.parse(Buffer.concat(chunks).toString());
     sessionId = payload.session_id || "default";
     cwd = payload.cwd || "";
+    toolName = payload.tool_name || "";
   } catch {}
-  send(sessionId, cwd);
+  send(sessionId, cwd, toolName);
 });
 
 // Safety: if stdin doesn't end in 400ms, send with default session
 // (200ms was too aggressive on slow machines / AV scanning)
-setTimeout(() => send("default", ""), 400);
+setTimeout(() => send("default", "", ""), 400);
 
-function send(sessionId, cwd) {
+function send(sessionId, cwd, toolName) {
   if (sent) return;
   sent = true;
 
   const body = { state, session_id: sessionId, event };
   if (cwd) body.cwd = cwd;
+  if (toolName) body.tool_name = toolName;
   // Always walk to stable terminal PID — process.ppid is an ephemeral shell
   // that dies when the hook exits, so it's useless for later focus calls
   body.source_pid = getStablePid();

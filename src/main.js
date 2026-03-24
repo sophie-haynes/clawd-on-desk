@@ -651,7 +651,7 @@ function wakeFromDoze() {
 // ── Session management ──
 const ONESHOT_STATES = new Set(["attention", "error", "sweeping", "notification", "carrying"]);
 
-function updateSession(sessionId, state, event, sourcePid, cwd) {
+function updateSession(sessionId, state, event, sourcePid, cwd, toolName) {
   // PermissionRequest command hook: show notification animation only, don't mutate session.
   // The HTTP hook runs in parallel and handles the actual decision. If we set session to idle
   // here, it can overwrite a newer "working" state after the user approves.
@@ -669,7 +669,7 @@ function updateSession(sessionId, state, event, sourcePid, cwd) {
     sessions.delete(sessionId);
   } else if (state === "attention" || state === "notification" || SLEEP_SEQUENCE.has(state)) {
     // Stop/notification/sleep: session goes idle — if work continues, new hooks will re-set
-    sessions.set(sessionId, { state: "idle", updatedAt: Date.now(), sourcePid: srcPid, cwd: srcCwd });
+    sessions.set(sessionId, { state: "idle", updatedAt: Date.now(), sourcePid: srcPid, cwd: srcCwd, toolName: "" });
   } else if (ONESHOT_STATES.has(state)) {
     // Other oneshots (error/sweeping/notification/carrying):
     // preserve session's previous state so auto-return resolves correctly
@@ -678,7 +678,7 @@ function updateSession(sessionId, state, event, sourcePid, cwd) {
       if (sourcePid) existing.sourcePid = sourcePid;
       if (cwd) existing.cwd = cwd;
     } else {
-      sessions.set(sessionId, { state: "idle", updatedAt: Date.now(), sourcePid: srcPid, cwd: srcCwd });
+      sessions.set(sessionId, { state: "idle", updatedAt: Date.now(), sourcePid: srcPid, cwd: srcCwd, toolName: "" });
     }
   } else {
     // Preserve juggling: subagent's own tool use (PreToolUse/PostToolUse)
@@ -686,7 +686,7 @@ function updateSession(sessionId, state, event, sourcePid, cwd) {
     if (existing && existing.state === "juggling" && state === "working" && event !== "SubagentStop") {
       existing.updatedAt = Date.now();
     } else {
-      sessions.set(sessionId, { state, updatedAt: Date.now(), sourcePid: srcPid, cwd: srcCwd });
+      sessions.set(sessionId, { state, updatedAt: Date.now(), sourcePid: srcPid, cwd: srcCwd, toolName: toolName || "" });
     }
   }
   cleanStaleSessions();
@@ -776,10 +776,37 @@ function getActiveWorkingCount() {
   return n;
 }
 
+// Tool name → SVG mapping for tool-aware animations
+const TOOL_SVG = {
+  // Reading/searching tools → debugger
+  Read: "clawd-working-debugger.svg",
+  Grep: "clawd-working-debugger.svg",
+  Glob: "clawd-working-debugger.svg",
+  // Web tools → wizard
+  WebSearch: "clawd-working-wizard.svg",
+  WebFetch: "clawd-working-wizard.svg",
+  // Shell → building
+  Bash: "clawd-working-building.svg",
+  // Editing tools → typing
+  Edit: "clawd-working-typing.svg",
+  Write: "clawd-working-typing.svg",
+  NotebookEdit: "clawd-working-typing.svg",
+  // Agent orchestration → conducting
+  Agent: "clawd-working-conducting.svg",
+};
+
 function getWorkingSvg() {
   const n = getActiveWorkingCount();
   if (n >= 3) return "clawd-working-building.svg";
   if (n >= 2) return "clawd-working-juggling.svg";
+  // Single session: pick SVG based on tool name
+  for (const [, s] of sessions) {
+    if (s.state === "working" && s.toolName) {
+      if (TOOL_SVG[s.toolName]) return TOOL_SVG[s.toolName];
+      // MCP tools (mcp__*) → wizard animation
+      if (s.toolName.startsWith("mcp__")) return "clawd-working-wizard.svg";
+    }
+  }
   return "clawd-working-typing.svg";
 }
 
@@ -1064,6 +1091,7 @@ function startHttpServer() {
           const { state, svg, session_id, event } = data;
           const source_pid = Number.isFinite(data.source_pid) && data.source_pid > 0 ? Math.floor(data.source_pid) : null;
           const cwd = typeof data.cwd === "string" ? data.cwd : "";
+          const tool_name = typeof data.tool_name === "string" ? data.tool_name : "";
           if (STATE_SVGS[state]) {
             const sid = session_id || "default";
             // mini-* states are internal — only allow via direct SVG override (test scripts)
@@ -1091,7 +1119,7 @@ function startHttpServer() {
               const safeSvg = path.basename(svg);
               setState(state, safeSvg);
             } else {
-              updateSession(sid, state, event, source_pid, cwd);
+              updateSession(sid, state, event, source_pid, cwd, tool_name);
             }
             res.writeHead(200);
             res.end("ok");
