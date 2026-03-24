@@ -162,26 +162,17 @@ STATE_SVGS["mini-enter-sleep"] = ["clawd-mini-enter-sleep.svg"];
 STATE_SVGS["mini-sleep"] = ["clawd-mini-sleep.svg"];
 
 const MIN_DISPLAY_MS = {
-  attention: 4000,
-  error: 5000,
-  sweeping: 2000,
-  notification: 4000,
-  carrying: 3000,
-  working: 1000,
-  thinking: 1000,
-  "mini-alert": 4000,
-  "mini-happy": 4000,
 };
 
 // Oneshot states that auto-return to idle (subset of MIN_DISPLAY_MS)
 const AUTO_RETURN_MS = {
-  attention: 4000,
-  error: 5000,
+  attention: 1500,
+  error: 2500,
   sweeping: 300000,  // 5min safety; PostCompact ends sweeping normally
-  notification: 4000,  // matches SVG animation loop (4s)
-  carrying: 3000,
-  "mini-alert": 4000,
-  "mini-happy": 4000,
+  notification: 2000,
+  carrying: 2000,
+  "mini-alert": 2000,
+  "mini-happy": 2000,
 };
 
 const MOUSE_IDLE_TIMEOUT = 20000;   // 20s → idle-look
